@@ -1,5 +1,6 @@
 import sys
 import os
+import queue
 
 minSize = 0
 dimensionType = 0
@@ -7,8 +8,8 @@ dimensionType = 0
 
 def getInputs():
     global minSize, dimensionType
-    # sys.argv.append("/2d_small.txt")             # necessary command for debug
-    # sys.argv.append("2")
+    sys.argv.append("/2d_small.txt")  # necessary command for debug
+    sys.argv.append("2")
     arguments = sys.argv
     if len(arguments) != 3:
         print("Please Enter Correct Inputs !")
@@ -32,19 +33,29 @@ def getInputs():
     dataSet = inputData[1:]
     # print(dimensionType)
     root = BuildTree(dataSet, 0)
-    traverseTree(root)
+    # print(root)
+    traversalTreeInPreOrder(root)
 
 
-def printNode(root):
-    print('items:', ', '.join(['%s:%s' % item for item in root.__dict__.items()]))
+def showNode(root):
+    print('items:', '\n '.join(['%s:%s' % item for item in root.__dict__.items()]))
+    print()
 
 
-def traverseTree(root):  # preOrder
-    # self.printNode(root)
-    printNode(root)
+def traversalTreeInPreOrder(root):  # preOrder
+    if root == None:
+        return
+    showNode(root)
+    traversalTreeInPreOrder(root.left)
+    traversalTreeInPreOrder(root.right)
 
 
-def traversalTree(root):
+
+def traversalTreeInBFS(root):
+    pass
+
+
+def showLeafValue(root):
     # calculate Bounding value
     dataSets = root.nodes
     minBounding = []
@@ -73,6 +84,7 @@ def findMax(dataSet, dimension):
 
 def BuildTree(dataSet, depth):
     if len(dataSet) <= minSize:
+        # print("___", dataSet)
         return TreeNode(dataSet)
     else:
         split = depth % dimensionType  # +1 and -1 so I simply ignored it
@@ -81,17 +93,22 @@ def BuildTree(dataSet, depth):
         right = len(dataSet) - 1
         median = int(left + (right - left) / 2)
         parent = TreeNode([dataSet[median]])
-        parent.left = BuildTree(dataSet[0:median - 1], depth + 1)
-        parent.right = BuildTree(dataSet[median + 1:right], depth + 1)
+        parent.left = BuildTree(dataSet[0:median], depth + 1)  # 0 to (median -1)
+        if parent.left != None:
+            parent.left.parent = parent
+        parent.right = BuildTree(dataSet[median + 1:right + 1], depth + 1)  # (median +1) to right
+        if parent.right != None:
+            parent.right.parent = parent
         return parent
 
 
 class TreeNode:
-    def __init__(self, nodes=None, left=None, right=None):
+    def __init__(self, nodes=None, left=None, right=None, parent=None):
         self.nodes = nodes
         # self.split = split
         self.left = left
         self.right = right
+        self.parent = parent
 
 
 if __name__ == "__main__":
