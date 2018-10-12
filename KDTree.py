@@ -1,6 +1,6 @@
 import sys
 import os
-import queue
+import math
 
 minSize = 0
 dimensionType = 0
@@ -11,7 +11,7 @@ module_path = os.path.dirname(__file__)
 def getInputs():
     global minSize, dimensionType
     sys.argv.append("2d_small.txt")  # necessary command for debug
-    sys.argv.append("2")
+    sys.argv.append("1")
     arguments = sys.argv
     if len(arguments) != 3:
         print("Please Enter Correct Inputs !")
@@ -33,21 +33,22 @@ def getInputs():
     dataSet = inputData[1:]
     root = BuildTree(dataSet, 0)
     traversalTreeInPreOrder(root, "")
-    printTreeLeavesIO()
+    printTreeLeavesIO(root)
 
 
-def printTreeLeavesIO():
+def printTreeLeavesIO(root):
     choose = str(input("Print tree leaves? (Enter Y for yes, anything else for no): "))
     if choose == "Y" or choose == "y":
         count = 0
         for key, value in leaves.items():
             print(str(count) + ".", key, ":", "Bounding Box: ", getBoundingValue(value))
+            # print(str(count) + ".", key, ":", "Bounding Box: ")
             print("Data in Leaf: ", value)
             count += 1
-
     temp = str(input("Test data? (Enter Y for yes, anything else to quit): "))
     if temp == "Y" or temp == "y":
-        while True:
+        Flag = True
+        while Flag:
             inputTestFileName = str(input("Name of data-file: "))
             testFileName = module_path + "/" + inputTestFileName
             if not os.path.exists(testFileName):
@@ -55,20 +56,84 @@ def printTreeLeavesIO():
                 continue
             else:
                 print("Correct File")
+                testData = []
+                with open(testFileName, "r") as f:
+                    for line in f.readlines():
+                        line = line.strip()
+                        testData.append(list(map(float, line.split(" "))))
+                testDataDimentionType = testData[0][0]
+                if testDataDimentionType != dimensionType:
+                    print("Dismatch the Dimentions. ")
+                    continue
+                testDataSet = testData[1:]
+                findNeighbors(root, testDataSet, 0)
+            Flag = False
     else:
         print("________________________________")
-        print("Quit.")
+        print("Goodbye.")
         return
 
 
-def showNode(root):
-    print('items:', '\n '.join(['%s:%s' % item for item in root.__dict__.items()]))
-    print()
+def findNearest(target, nodeSet):
+    distances = []
+    for node in nodeSet:
+        addTemp = 0
+        for d in range(dimensionType):
+            addTemp += math.pow((node[d] - target[d]), 2)
+        distances.append(math.sqrt(addTemp))
+    minVal = min(distances)
+    minIndex = distances.index(minVal)
+    return nodeSet[minIndex]
 
 
-def showLeaf(root, path):
-    print(path, " : ", root.__dict__["nodes"])
-    print()
+def calculateL2(node1, node2):
+    addTemp = 0
+    for d in range(dimensionType):
+        addTemp += math.pow((node1[d] - node2[d]), 2)
+    return math.sqrt(addTemp)
+
+
+def findNeighbors(root, testSet, depth):
+    for item in testSet:
+        print(item, "is in the set:", findNeighborsHelper(root, item, depth))
+        nearnest = findNearest(item, findNeighborsHelper(root, item, depth))
+        print("Nearest neighbor:", nearnest, "(distance=", calculateL2(nearnest, item), ")")
+        print()
+
+
+def findNeighborsHelper(root, node, depth):
+    if root is None:
+        return
+    nodes = root.nodes
+    split = depth % dimensionType
+    if len(nodes) == 1 and (root.left is not None and root.right is not None):
+        if nodes[0][split] <= node[split]:
+            return findNeighborsHelper(root.right, node, depth + 1)
+
+        else:
+            return findNeighborsHelper(root.left, node, depth + 1)
+    else:
+        return nodes
+
+
+def BuildTree(dataSet, depth):
+    if len(dataSet) <= minSize:
+        # print("___", dataSet)
+        return TreeNode(dataSet)
+    else:
+        split = depth % dimensionType  # +1 and -1 so I simply ignored it
+        dataSet.sort(key=lambda x: x[split])
+        left = 0
+        right = len(dataSet) - 1
+        median = left + int((right - left) / 2)
+        parent = TreeNode([dataSet[median]])
+        parent.left = BuildTree(dataSet[0:median + 1], depth + 1)  # 0 to (median)
+        # if parent.left != None:
+        #     parent.left.parent = parent
+        parent.right = BuildTree(dataSet[median + 1:], depth + 1)  # (median +1) to right
+        # if parent.right != None:
+        #     parent.right.parent = parent
+        return parent
 
 
 def traversalTreeInPreOrder(root, path):
@@ -79,6 +144,7 @@ def traversalTreeInPreOrder(root, path):
 def traversalTreeInPreOrderHelper(root, path, results):  # preOrder recursive
     if root is None:
         return results
+    # showNode()
     traversalTreeInPreOrderHelper(root.left, path + "L", results)
     traversalTreeInPreOrderHelper(root.right, path + "R", results)
     if (root.left is None) & (root.right is None):
@@ -120,26 +186,6 @@ def findMax(dataSet, dimension):
     return max
 
 
-def BuildTree(dataSet, depth):
-    if len(dataSet) <= minSize:
-        # print("___", dataSet)
-        return TreeNode(dataSet)
-    else:
-        split = depth % dimensionType  # +1 and -1 so I simply ignored it
-        dataSet.sort(key=lambda x: x[split])
-        left = 0
-        right = len(dataSet) - 1
-        median = int(left + (right - left) / 2)
-        parent = TreeNode([dataSet[median]])
-        parent.left = BuildTree(dataSet[0:median], depth + 1)  # 0 to (median -1)
-        if parent.left != None:
-            parent.left.parent = parent
-        parent.right = BuildTree(dataSet[median + 1:right + 1], depth + 1)  # (median +1) to right
-        if parent.right != None:
-            parent.right.parent = parent
-        return parent
-
-
 class TreeNode:
     def __init__(self, nodes=None, left=None, right=None, parent=None):
         self.nodes = nodes
@@ -147,6 +193,16 @@ class TreeNode:
         self.left = left
         self.right = right
         self.parent = parent
+
+
+def showNode(root):
+    print('items:', '\n '.join(['%s:%s' % item for item in root.__dict__.items()]))
+    print()
+
+
+def showLeaf(root, path):
+    print(path, " : ", root.__dict__["nodes"])
+    print()
 
 
 if __name__ == "__main__":
