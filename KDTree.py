@@ -32,15 +32,18 @@ def getInputs():
     dimensionType = int(inputData[0][0])
     dataSet = inputData[1:]
     root = BuildTree(dataSet, 0)
+    # showNode(root)
     traversalTreeInPreOrder(root, "")
+    # print(leaves)
     printTreeLeavesIO(root)
 
 
 def printTreeLeavesIO(root):
     choose = str(input("Print tree leaves? (Enter Y for yes, anything else for no): "))
+    # print(leaves)
     if choose == "Y" or choose == "y":
         count = 0
-        for key, value in leaves.items():
+        for (key, value) in leaves.items():
             print(str(count) + ".", key, ":", "Bounding Box: ", getBoundingValue(value))
             # print(str(count) + ".", key, ":", "Bounding Box: ")
             print("Data in Leaf: ", value)
@@ -86,6 +89,76 @@ def findNearest(target, nodeSet):
     return nodeSet[minIndex]
 
 
+def BuildTree(dataSet, depth):
+    if len(dataSet) <= minSize:
+        # print("___", dataSet)
+        return TreeNode(dataSet)
+    else:
+        split = depth % dimensionType  # +1 and -1 so I simply ignored it
+        dataSet.sort(key=lambda x: x[split])
+        left = 0
+        # right = len(dataSet) - 1
+        # median = left + int((right - left) / 2)
+        right = len(dataSet)
+        median = int((right - left) / 2) - 1  ## match professor's output
+        parent = TreeNode([dataSet[median]])
+        leftSet = []
+        rightSet = []
+        for x in dataSet:
+            if x[split] <= dataSet[median][split]:
+                leftSet.append(x)
+            else:
+                rightSet.append(x)
+        parent.left = BuildTree(leftSet, depth + 1)
+        parent.right = BuildTree(rightSet, depth + 1)
+        # parent.left = BuildTree(dataSet[0:median + 1], depth + 1)  # 0 to (median)
+        # if parent.left != None:
+        #     parent.left.parent = parent
+        # parent.right = BuildTree(dataSet[median + 1:], depth + 1)  # (median +1) to right
+        # if parent.right != None:
+        #     parent.right.parent = parent
+        return parent
+
+
+def traversalTreeInPreOrder(root, path):
+    results = []
+    return traversalTreeInPreOrderHelper(root, path, results)
+
+
+def traversalTreeInPreOrderHelper(root, path, results):  # preOrder recursive
+    global leaves
+    if root is None:
+        return results
+    # showNode(root)
+    traversalTreeInPreOrderHelper(root.left, path + "L", results)
+    traversalTreeInPreOrderHelper(root.right, path + "R", results)
+    if (root.left is None) & (root.right is None) & (
+            root.nodes != []):  ## one on the node do not have nodes and left and right
+        results.append(path)
+        # showLeaf(root, path)
+        leaves[path] = root.__dict__["nodes"]
+    return results
+
+
+def getBoundingValue(dataSets):
+    if not dataSets:
+        return dataSets
+    # print("The set",dataSets)
+    # calculate Bounding value
+    # dataSets = root.nodes
+    # print(dataSets)
+    minBounding = []
+    maxBounding = []
+    for d in range(dimensionType):
+        minBounding.append(findMin(dataSets, d))
+        maxBounding.append(findMax(dataSets, d))
+    # print("Bounding Box : ", minBounding , " , ", maxBounding)
+    answer = []
+    answer.append(minBounding)
+    answer.append(maxBounding)
+    return answer
+
+
 def calculateL2(node1, node2):
     addTemp = 0
     for d in range(dimensionType):
@@ -114,60 +187,6 @@ def findNeighborsHelper(root, node, depth):
             return findNeighborsHelper(root.left, node, depth + 1)
     else:
         return nodes
-
-
-def BuildTree(dataSet, depth):
-    if len(dataSet) <= minSize:
-        # print("___", dataSet)
-        return TreeNode(dataSet)
-    else:
-        split = depth % dimensionType  # +1 and -1 so I simply ignored it
-        dataSet.sort(key=lambda x: x[split])
-        left = 0
-        right = len(dataSet) - 1
-        median = left + int((right - left) / 2)
-        parent = TreeNode([dataSet[median]])
-        parent.left = BuildTree(dataSet[0:median + 1], depth + 1)  # 0 to (median)
-        # if parent.left != None:
-        #     parent.left.parent = parent
-        parent.right = BuildTree(dataSet[median + 1:], depth + 1)  # (median +1) to right
-        # if parent.right != None:
-        #     parent.right.parent = parent
-        return parent
-
-
-def traversalTreeInPreOrder(root, path):
-    results = []
-    return traversalTreeInPreOrderHelper(root, path, results)
-
-
-def traversalTreeInPreOrderHelper(root, path, results):  # preOrder recursive
-    if root is None:
-        return results
-    # showNode()
-    traversalTreeInPreOrderHelper(root.left, path + "L", results)
-    traversalTreeInPreOrderHelper(root.right, path + "R", results)
-    if (root.left is None) & (root.right is None):
-        results.append(path)
-        # showLeaf(root, path)
-        leaves[path] = root.__dict__["nodes"]
-    return results
-
-
-def getBoundingValue(dataSets):
-    # calculate Bounding value
-    # dataSets = root.nodes
-    # print(dataSets)
-    minBounding = []
-    maxBounding = []
-    for d in range(dimensionType):
-        minBounding.append(findMin(dataSets, d))
-        maxBounding.append(findMax(dataSets, d))
-    # print("Bounding Box : ", minBounding , " , ", maxBounding)
-    answer = []
-    answer.append(minBounding)
-    answer.append(maxBounding)
-    return answer
 
 
 def findMin(dataSet, dimension):
