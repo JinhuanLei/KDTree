@@ -10,8 +10,8 @@ module_path = os.path.dirname(__file__)
 
 def getInputs():
     global minSize, dimensionType
-    sys.argv.append("2d_small.txt")  # necessary command for debug
-    sys.argv.append("1")
+    sys.argv.append("4d.txt")  # necessary command for debug
+    sys.argv.append("5")
     arguments = sys.argv
     if len(arguments) != 3:
         print("Please Enter Correct Inputs !")
@@ -71,22 +71,9 @@ def printTreeLeavesIO(root):
                 testDataSet = testData[1:]
                 findNeighbors(root, testDataSet, 0)
             Flag = False
-    else:
-        print("________________________________")
-        print("Goodbye.")
-        return
-
-
-def findNearest(target, nodeSet):
-    distances = []
-    for node in nodeSet:
-        addTemp = 0
-        for d in range(dimensionType):
-            addTemp += math.pow((node[d] - target[d]), 2)
-        distances.append(math.sqrt(addTemp))
-    minVal = min(distances)
-    minIndex = distances.index(minVal)
-    return nodeSet[minIndex]
+    print("________________________________")
+    print("Goodbye.")
+    return
 
 
 def BuildTree(dataSet, depth):
@@ -110,7 +97,11 @@ def BuildTree(dataSet, depth):
             else:
                 rightSet.append(x)
         parent.left = BuildTree(leftSet, depth + 1)
+        if parent.left != None:
+            parent.left.parent = parent
         parent.right = BuildTree(rightSet, depth + 1)
+        if parent.right != None:
+            parent.right.parent = parent
         # parent.left = BuildTree(dataSet[0:median + 1], depth + 1)  # 0 to (median)
         # if parent.left != None:
         #     parent.left.parent = parent
@@ -133,7 +124,7 @@ def traversalTreeInPreOrderHelper(root, path, results):  # preOrder recursive
     traversalTreeInPreOrderHelper(root.left, path + "L", results)
     traversalTreeInPreOrderHelper(root.right, path + "R", results)
     if (root.left is None) & (root.right is None) & (
-            root.nodes != []):  ## one on the node do not have nodes and left and right
+            len(root.nodes) != 0):  ## one on the node do not have nodes and left and right
         results.append(path)
         # showLeaf(root, path)
         leaves[path] = root.__dict__["nodes"]
@@ -141,7 +132,7 @@ def traversalTreeInPreOrderHelper(root, path, results):  # preOrder recursive
 
 
 def getBoundingValue(dataSets):
-    if not dataSets:
+    if len(dataSets) == 0:
         return dataSets
     # print("The set",dataSets)
     # calculate Bounding value
@@ -166,11 +157,29 @@ def calculateL2(node1, node2):
     return math.sqrt(addTemp)
 
 
+def findNearest(target, nodeSet):
+    if len(nodeSet) == 0:
+        return nodeSet
+    distances = []
+    for node in nodeSet:
+        addTemp = 0
+        for d in range(dimensionType):
+            addTemp += math.pow((node[d] - target[d]), 2)
+        distances.append(math.sqrt(addTemp))
+    minVal = min(distances)
+    minIndex = distances.index(minVal)
+    return nodeSet[minIndex]
+
+
 def findNeighbors(root, testSet, depth):
     for item in testSet:
-        print(item, "is in the set:", findNeighborsHelper(root, item, depth))
-        nearnest = findNearest(item, findNeighborsHelper(root, item, depth))
-        print("Nearest neighbor:", nearnest, "(distance=", calculateL2(nearnest, item), ")")
+        neighbors=findNeighborsHelper(root, item, depth)
+        if len(neighbors) != 0:
+            print(item, "is in the set:", neighbors)
+            nearnest = findNearest(item, neighbors)
+            print("Nearest neighbor:", nearnest, "(distance=", calculateL2(nearnest, item), ")")
+        else:
+            print(item, "has no nearest neighbor (in an empty set).")
         print()
 
 
@@ -179,8 +188,8 @@ def findNeighborsHelper(root, node, depth):
         return
     nodes = root.nodes
     split = depth % dimensionType
-    if len(nodes) == 1 and (root.left is not None and root.right is not None):
-        if nodes[0][split] <= node[split]:
+    if len(nodes) == 1 and (root.left is not None or root.right is not None):
+        if nodes[0][split] < node[split]:
             return findNeighborsHelper(root.right, node, depth + 1)
 
         else:
@@ -215,6 +224,7 @@ class TreeNode:
 
 
 def showNode(root):
+    print("current:", root)
     print('items:', '\n '.join(['%s:%s' % item for item in root.__dict__.items()]))
     print()
 
